@@ -129,7 +129,7 @@ This project is licensed under the **MIT License**, allowing for open-source con
 For inquiries and support, reach out to **JB Arrowstar Solutions**:
 
 📧 Email: info@jbas.co.in  
-🌐 Website: [JB Arrowstar Solutions](https://jbarrowstarsolutions.com)  
+🌐 Website: [JB Arrowstar Solutions](https://jbas.co.in)  
 📍 Address: Bangalore, India  
 
 ---
