@@ -133,7 +133,7 @@ This project is licensed under the **MIT License**.
 
 ## Contact & Support
 For inquiries, reach out to **JB Arrowstar Solutions**:
-📧 Email: contact@jbarrowstarsolutions.com  
+📧 Email: info@jbarrowstarsolutions.com  
 🌐 Website: [JB Arrowstar Solutions](https://jbarrowstarsolutions.com)  
 📍 Address: Bangalore, India  
 
