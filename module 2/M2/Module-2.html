@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SimCamera GUI</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tiff.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f0f0f0;
+        overflow: hidden; /* Prevent body scrolling */
+      }
+      .container {
+        display: flex;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        width: 95%; /* Fit to screen width */
+        height: 90vh; /* Fit to screen height */
+        max-width: 1600px; /* Limit maximum width */
+      }
+      .input-container {
+        flex: 1;
+        padding-right: 20px;
+        overflow-y: auto; /* Add scroll if content overflows */
+        max-height: 100%; /* Limit height to container */
+      }
+      .output-container {
+        flex: 1;
+        text-align: center;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+      canvas {
+        border: 1px solid #ddd;
+        margin-top: 10px;
+        max-width: 100%;
+        height: auto;
+        background-color: white; /* White background for canvas */
+      }
+      button {
+        padding: 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 10px;
+        width: 100%;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      .input-group {
+        margin: 10px 0;
+      }
+      .input-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      .input-group input {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+      .input-group.horizontal {
+        display: flex;
+        gap: 10px; /* Space between inputs */
+      }
+      .input-group.horizontal input {
+        width: 48%; /* Reduce input box size */
+      }
+      .error-message {
+        color: red;
+        font-size: 14px;
+        margin-top: 10px;
+        display: none;
+      }
+      #canvasContainer {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border: 1px solid #ddd;
+        background-color: #87ceeb; /* Blue background for output image */
+        width: 100%;
+        min-height: 300px;
+        margin-top: 5px;
+      }
+      .button-container {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 15px;
+      }
+      .button-container button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        background-color: #007bff;
+        color: white;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      .button-container button:hover {
+        background-color: #0056b3;
+      }
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      fieldset {
+        border: 2px solid #007bff;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+      }
+      legend {
+        font-weight: bold;
+        color: #007bff;
+        padding: 5px 10px;
+        border-radius: 5px;
+        background-color: #f0f8ff;
+      }
+      .container {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+      }
+
+      .half-width {
+        width: 50%;
+        border: 2px solid #007bff;
+        border-radius: 8px;
+        padding: 15px;
+      }
+
+      .left-section {
+        order: 1;
+      }
+
+      .right-section {
+        display: flex;
+        flex-direction: column;
+        width: 50%;
+        gap: 15px;
+        order: 2;
+      }
+
+      .full-width {
+        width: 100%;
+        border: 2px solid #007bff;
+        border-radius: 8px;
+        padding: 15px;
+      }
+
+      legend {
+        font-weight: bold;
+        color: #007bff;
+        padding: 5px 10px;
+        border-radius: 5px;
+        background-color: #f0f8ff;
+      }
+
+      .input-group {
+        margin-bottom: 10px;
+      }
+
+      .input-group.horizontal {
+        display: flex;
+        gap: 10px;
+      }
+
+      .button-container {
+        margin-top: 10px;
+      }
+
+      .container {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px; /* Increases spacing between left and right sections */
+        padding: 10px;
+      }
+
+      .left-section,
+      .right-section {
+        width: 45%; /* Reduces width slightly to prevent overlap */
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      fieldset {
+        border: 2px solid #007bff;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 0; /* Removes extra margin that may cause overlapping */
+      }
+
+      legend {
+        font-weight: bold;
+        color: #007bff;
+        padding: 5px 10px;
+        border: 1px solid #007bff;
+        border-radius: 5px;
+        background-color: #f0f8ff;
+      }
+
+      .input-group {
+        margin-bottom: 10px;
+      }
+
+      .input-group.horizontal {
+        display: flex;
+        gap: 10px;
+      }
+
+      .button-container {
+        margin-top: 10px;
+      }
+      fieldset {
+        border: 2px solid #007bff;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 0;
+        position: relative;
+      }
+
+      legend {
+        font-weight: bold;
+        color: #007bff;
+        border: 2px solid #007bff; /* Same as fieldset border */
+        border-radius: 5px;
+        background-color: #f0f8ff;
+        padding: 3px 10px;
+        width: auto; /* Makes it fit the content */
+        text-align: center;
+        display: inline-block; /* Ensures it doesn't stretch */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="input-container">
+        <h2>SimCamera Graphical User Interface</h2>
+
+        <div class="container">
+          <!-- Left: Intrinsic and Extrinsic Parameters -->
+          <div class="left-section">
+            <!-- Camera Intrinsic Parameters -->
+            <fieldset class="full-width">
+              <legend>Camera Intrinsic Parameters</legend>
+              <div class="input-group">
+                <label for="focalLength">Focal Length, λ (m):</label>
+                <input type="number" id="focalLength" value="0.005" />
+              </div>
+              <div class="input-group horizontal">
+                <div>
+                  <label for="pixelSizeX">Pixel Size sx (m):</label>
+                  <input type="number" id="pixelSizeX" value="3.5e-05" />
+                </div>
+                <div>
+                  <label for="pixelSizeY">Pixel Size sy (m):</label>
+                  <input type="number" id="pixelSizeY" value="3.5e-05" />
+                </div>
+              </div>
+              <div class="input-group horizontal">
+                <div>
+                  <label for="imageWidth">Image Width (px):</label>
+                  <input type="number" id="imageWidth" value="640" />
+                </div>
+                <div>
+                  <label for="imageHeight">Image Height (px):</label>
+                  <input type="number" id="imageHeight" value="480" />
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- Camera Extrinsic Parameters -->
+            <fieldset class="full-width">
+              <legend>Camera Extrinsic Parameters</legend>
+              <div class="input-group">
+                <label for="pan">Pan (deg): [0 to 359]</label>
+                <input type="number" id="pan" value="0" />
+              </div>
+              <div class="input-group">
+                <label for="tilt">Tilt (deg): [-45 to 45]</label>
+                <input type="number" id="tilt" value="0" />
+              </div>
+              <div class="input-group">
+                <label for="latitude">Latitude (deg):</label>
+                <input type="number" id="latitude" value="12.9611" />
+              </div>
+              <div class="input-group">
+                <label for="longitude">Longitude (deg):</label>
+                <input type="number" id="longitude" value="77.6552" />
+              </div>
+              <div class="input-group">
+                <label for="altitude">Altitude (m):</label>
+                <input type="number" id="altitude" value="300" />
+              </div>
+            </fieldset>
+          </div>
+
+          <!-- Right: Camera View -->
+          <fieldset class="half-width right-section">
+            <legend>Camera View</legend>
+            <div class="error-message" id="errorMessage"></div>
+            <div id="canvasContainer"></div>
+            <div class="button-container">
+              <button onclick="generateOutput()">Generate</button>
+              <button onclick="exportImage()">Export</button>
+            </div>
+          </fieldset>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let tiffImage;
+      let scene, camera, renderer, texture, plane, parentObject;
+
+      // Center latitude and longitude
+      const centerLat = 12.9611;
+      const centerLon = 77.6532;
+
+      // Predefined initial position, rotation, and scale
+      const initialPosition = { x: 16, y: -10, z: 0 }; // Set initial position
+      const initialRotation = { x: 0, y: 0, z: 0 }; // Set initial rotation
+      const initialScale = { x: 12, y: 10, z: 1 }; // Set initial scale
+
+      // Initialize Three.js scene
+      function initThreeJS() {
+        const container = document.getElementById("canvasContainer");
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+
+        renderer.setSize(800, 400); /* Adjusted canvas size */
+        renderer.setClearColor(0x87ceeb); /* Blue background for the scene */
+        container.appendChild(renderer.domElement);
+
+        // Create a parent object for the image
+        parentObject = new THREE.Object3D();
+        scene.add(parentObject);
+
+        const geometry = new THREE.PlaneGeometry(5, 5);
+        const material = new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          side: THREE.DoubleSide,
+        });
+        plane = new THREE.Mesh(geometry, material);
+
+        // Set initial position, rotation, and scale for the plane
+        plane.position.set(
+          initialPosition.x,
+          initialPosition.y,
+          initialPosition.z
+        );
+        plane.rotation.set(
+          initialRotation.x,
+          initialRotation.y,
+          initialRotation.z
+        );
+        plane.scale.set(initialScale.x, initialScale.y, initialScale.z);
+
+        // Add the plane to the parent object
+        parentObject.add(plane);
+
+        camera.position.z = 5;
+        animate();
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        initThreeJS();
+        try {
+          loadTIFFImage("./aa.tiff");
+        } catch (error) {
+          console.log("No default TIFF available, waiting for user upload");
+        }
+      });
+
+      function loadTIFFImage(url) {
+        fetch(url)
+          .then((response) => {
+            if (!response.ok) throw new Error(`Failed to load ${url}`);
+            return response.arrayBuffer();
+          })
+          .then((buffer) => processTiffBuffer(buffer))
+          .catch((error) => console.error("Error loading TIFF:", error));
+      }
+
+      function processTiffBuffer(buffer) {
+        try {
+          tiffImage = new Tiff({ buffer: buffer });
+          const imgCanvas = tiffImage.toCanvas();
+
+          texture = new THREE.CanvasTexture(imgCanvas);
+          plane.material.map = texture;
+          plane.material.needsUpdate = true;
+
+          console.log("TIFF loaded successfully");
+        } catch (error) {
+          console.error("Error processing TIFF:", error);
+        }
+      }
+
+      function validateInputs() {
+        const latitude = parseFloat(document.getElementById("latitude").value);
+        const longitude = parseFloat(
+          document.getElementById("longitude").value
+        );
+        const errorMessage = document.getElementById("errorMessage");
+
+        if (
+          latitude < 12.5 ||
+          latitude > 13.5 ||
+          longitude < 77.0 ||
+          longitude > 78.0
+        ) {
+          errorMessage.textContent =
+            "Error: Latitude must be between 12.5 and 13.5, and Longitude must be between 77.0 and 78.0.";
+          errorMessage.style.display = "block";
+          return false;
+        } else {
+          errorMessage.style.display = "none";
+          return true;
+        }
+      }
+
+      function generateOutput() {
+        if (!validateInputs()) return;
+
+        if (!tiffImage) {
+          alert("Please load a TIFF image first");
+          return;
+        }
+
+        const latitude = parseFloat(document.getElementById("latitude").value);
+        const longitude = parseFloat(
+          document.getElementById("longitude").value
+        );
+        const altitude = parseFloat(document.getElementById("altitude").value);
+        const pan = parseFloat(document.getElementById("pan").value);
+        const tilt = parseFloat(document.getElementById("tilt").value);
+        const focalLength = parseFloat(
+          document.getElementById("focalLength").value
+        );
+        const pixelSizeX = parseFloat(
+          document.getElementById("pixelSizeX").value
+        );
+        const pixelSizeY = parseFloat(
+          document.getElementById("pixelSizeY").value
+        );
+
+        // Calculate relative movement from center
+        const latDiff = (latitude - centerLat) * 1000;
+        const lonDiff = (longitude - centerLon) * 1000;
+
+        // Apply transformations to the parent object
+        parentObject.position.x = lonDiff;
+        parentObject.position.y = -latDiff;
+        parentObject.rotation.y = THREE.MathUtils.degToRad(pan);
+        parentObject.rotation.x = THREE.MathUtils.degToRad(tilt);
+
+        // Adjust scale based on altitude (zoom in/out)
+        const scale = 1000 / altitude;
+        parentObject.scale.set(scale, scale, scale);
+
+        // Update camera FOV based on focal length and pixel size
+        const sensorHeight =
+          pixelSizeY * parseFloat(document.getElementById("imageHeight").value);
+        const fov =
+          2 * Math.atan(sensorHeight / (2 * focalLength)) * (180 / Math.PI);
+        camera.fov = fov;
+        camera.updateProjectionMatrix();
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+      }
+
+      function exportImage() {
+        if (!validateInputs()) return;
+
+        if (!tiffImage) {
+          alert("Please load a TIFF image first");
+          return;
+        }
+
+        const imageWidth = parseFloat(
+          document.getElementById("imageWidth").value
+        );
+        const imageHeight = parseFloat(
+          document.getElementById("imageHeight").value
+        );
+
+        // Create a temporary renderer with the specified dimensions
+        const tempRenderer = new THREE.WebGLRenderer({
+          antialias: true,
+          preserveDrawingBuffer: true,
+        });
+        tempRenderer.setSize(imageWidth, imageHeight);
+        tempRenderer.setClearColor(0x87ceeb);
+        tempRenderer.render(scene, camera);
+
+        // Export the image
+        const link = document.createElement("a");
+        link.download = "transformed_image.png";
+        link.href = tempRenderer.domElement.toDataURL("image/png");
+        link.click();
+      }
+    </script>
+  </body>
+</html>

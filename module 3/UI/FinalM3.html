@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Registration</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
+    <style>
+      canvas {
+        border: 1px solid black;
+        margin: 10px;
+      }
+
+      .outputContainer {
+        display: flex;
+        justify-content: space-evenly;
+        display: none;
+        margin-top: 10px;
+      }
+      .overlayPara {
+        margin: 0px;
+        font-weight: bold;
+        font-size: 12px;
+        padding-bottom: 10px;
+        text-align: center;
+      }
+      .mainContainer {
+        display: flex;
+        justify-content: space-evenly;
+      }
+      .btn {
+        text-align: center;
+        padding: 15px;
+      }
+      .points-container {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 30px;
+        margin-left: 30px;
+        width: 100%;
+      }
+      .points-display {
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin: 5px;
+        width: 45%;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .points-display h3 {
+        margin-top: 0;
+      }
+      .point-entry {
+        margin-bottom: 5px;
+      }
+      .aplhaValue {
+        text-align: center;
+      }
+      #registeredCanvas {
+        margin-top: 30px;
+      }
+      /* Meida Queries */
+      @media (max-width: 768px) {
+        .mainContainer {
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .outputContainer {
+          flex-direction: column;
+          align-items: center;
+        }
+
+        canvas {
+          max-width: 100%;
+          height: auto;
+        }
+
+        .points-container {
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .points-display {
+          width: 90%;
+          max-height: 150px;
+          font-size: 14px;
+        }
+
+        .btn button {
+          padding: 10px 20px;
+          font-size: 14px;
+        }
+
+        .overlayPara {
+          font-size: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="mainContainer">
+        <div class="baseContainer">
+          <div class="input-group">
+            <label for="baseImageInput">Base Image: </label>
+            <input type="file" id="baseImageInput" accept="image/*" />
+          </div>
+          <canvas id="baseCanvas"></canvas>
+        </div>
+
+        <div class="inputContainer">
+          <div class="input-group">
+            <label for="inputImageInput">Input Image: </label>
+            <input type="file" id="inputImageInput" accept="image/*" />
+          </div>
+          <div>
+            <canvas id="inputCanvas"></canvas>
+          </div>
+        </div>
+        <!-- points container -->
+        <div class="points-container">
+          <div class="points-display" id="basePointsDisplay">
+            <h3>Base Image Points</h3>
+            <div id="basePointsList"></div>
+          </div>
+          <div class="points-display" id="inputPointsDisplay">
+            <h3>Input Image Points</h3>
+            <div id="inputPointsList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn"><button id="computeBtn">RUN</button></div>
+
+      <div class="outputContainer">
+        <div>
+          <canvas id="registeredCanvas"></canvas>
+          <p class="overlayPara">Registered Input(Recovered Image)</p>
+        </div>
+        <div>
+          <div class="aplhaValue">
+            <label for="opacitySlider"> Alpha: </label>
+            <input
+              type="range"
+              id="opacitySlider"
+              min="0"
+              max="1"
+              step="0.05"
+              value="0.5"
+            />
+            <span id="opacityValue">0.5</span>
+          </div>
+
+          <canvas id="overlayCanvas"></canvas>
+
+          <p class="overlayPara">
+            Semitransparent version of input image aligned with base image
+          </p>
+          <div><button onclick="exportImages()">Export</button></div>
+        </div>
+        <div
+          id="matrixDisplay"
+          style="margin-top: 10px; font-weight: bold"
+        ></div>
+      </div>
+    </div>
+
+    <script>
+      class ImageRegistration {
+        constructor() {
+          this.basePoints = [];
+          this.inputPoints = [];
+          this.baseCanvas = document.getElementById("baseCanvas");
+          this.inputCanvas = document.getElementById("inputCanvas");
+          this.registeredCanvas = document.getElementById("registeredCanvas");
+          this.overlayCanvas = document.getElementById("overlayCanvas");
+          this.outputContainer = document.querySelector(".outputContainer");
+          this.baseCtx = this.baseCanvas.getContext("2d");
+          this.inputCtx = this.inputCanvas.getContext("2d");
+          this.registeredCtx = this.registeredCanvas.getContext("2d");
+          this.overlayCtx = this.overlayCanvas.getContext("2d");
+          this.basePointsList = document.getElementById("basePointsList");
+          this.inputPointsList = document.getElementById("inputPointsList");
+          this.setupEventListeners();
+          this.loadDefaultImages();
+        }
+
+        loadDefaultImages() {
+          // Load default base image (baseImg.jpg)
+          const baseImg = new Image();
+          baseImg.onload = () => {
+            this.baseCanvas.width = baseImg.width;
+            this.baseCanvas.height = baseImg.height;
+            this.baseCtx.drawImage(baseImg, 0, 0);
+            this.baseImage = baseImg;
+          };
+          baseImg.src = "baseImg.jpeg";
+
+          // Load default input image (inputImg.jpg)
+          const inputImg = new Image();
+          inputImg.onload = () => {
+            this.inputCanvas.width = inputImg.width;
+            this.inputCanvas.height = inputImg.height;
+            this.inputCtx.drawImage(inputImg, 0, 0);
+            this.inputImage = inputImg;
+          };
+          inputImg.src = "inputImg.jpeg";
+        }
+
+        setupEventListeners() {
+          document
+            .getElementById("baseImageInput")
+            .addEventListener("change", (e) =>
+              this.loadImage(e, this.baseCanvas, true)
+            );
+          document
+            .getElementById("inputImageInput")
+            .addEventListener("change", (e) =>
+              this.loadImage(e, this.inputCanvas, false)
+            );
+          this.baseCanvas.addEventListener("click", (e) =>
+            this.addControlPoint(e, true)
+          );
+          this.inputCanvas.addEventListener("click", (e) =>
+            this.addControlPoint(e, false)
+          );
+          document
+            .getElementById("opacitySlider")
+            .addEventListener("input", () => {
+              document.getElementById("opacityValue").innerText =
+                document.getElementById("opacitySlider").value;
+              this.createOverlay();
+            });
+
+          document
+            .getElementById("computeBtn")
+            .addEventListener("click", () => this.computeRegistration());
+        }
+
+        loadImage(event, canvas, isBase) {
+          const file = event.target.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+              canvas.width = img.width;
+              canvas.height = img.height;
+              canvas.getContext("2d").drawImage(img, 0, 0);
+              if (isBase) {
+                this.baseImage = img;
+                this.basePoints = [];
+                this.basePointsList.innerHTML = "";
+              } else {
+                this.inputImage = img;
+                this.inputPoints = [];
+                this.inputPointsList.innerHTML = "";
+              }
+            };
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
+        addControlPoint(event, isBase) {
+          const canvas = isBase ? this.baseCanvas : this.inputCanvas;
+          const points = isBase ? this.basePoints : this.inputPoints;
+          const pointsList = isBase
+            ? this.basePointsList
+            : this.inputPointsList;
+          const rect = canvas.getBoundingClientRect();
+          let x = Math.round(
+            (event.clientX - rect.left) * (canvas.width / rect.width)
+          );
+          let y = Math.round(
+            (event.clientY - rect.top) * (canvas.height / rect.height)
+          );
+
+          // Check if the clicked point is close to an existing point (threshold: 10px)
+          const threshold = 10;
+          let indexToRemove = -1;
+          for (let i = 0; i < points.length; i++) {
+            let [px, py] = points[i];
+            let distance = Math.sqrt((px - x) ** 2 + (py - y) ** 2);
+            if (distance < threshold) {
+              indexToRemove = i;
+              break;
+            }
+          }
+
+          if (indexToRemove !== -1) {
+            // Remove the selected point
+            points.splice(indexToRemove, 1);
+          } else {
+            // Add the new point
+            points.push([x, y]);
+          }
+
+          // Redraw the canvas and update displayed points
+          this.redrawCanvas(isBase);
+          points.forEach(([px, py], index) => {
+            this.drawControlPoint(px, py, canvas, index + 1);
+          });
+          this.updatePointsDisplay(isBase);
+        }
+
+        updatePointsDisplay(isBase) {
+          const pointsList = isBase
+            ? this.basePointsList
+            : this.inputPointsList;
+          const points = isBase ? this.basePoints : this.inputPoints;
+
+          pointsList.innerHTML = "";
+
+          points.forEach((point, index) => {
+            const pointEntry = document.createElement("div");
+            pointEntry.className = "point-entry";
+            pointEntry.innerHTML = `Point ${index + 1}: (${Math.round(
+              point[0]
+            )}, ${Math.round(point[1])})`;
+            pointsList.appendChild(pointEntry);
+          });
+        }
+
+        redrawCanvas(isBase) {
+          const canvas = isBase ? this.baseCanvas : this.inputCanvas;
+          const ctx = canvas.getContext("2d");
+          const img = isBase ? this.baseImage : this.inputImage;
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+        }
+
+        drawControlPoint(x, y, canvas, pointIndex) {
+          const ctx = canvas.getContext("2d");
+
+          // Draw cross mark
+          ctx.strokeStyle = "blue";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x - 5, y - 5);
+          ctx.lineTo(x + 5, y + 5);
+          ctx.moveTo(x + 5, y - 5);
+          ctx.lineTo(x - 5, y + 5);
+          ctx.stroke();
+
+          // Draw point number
+          ctx.fillStyle = "red";
+          ctx.font = "bold 12px Arial";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "bottom";
+          ctx.fillText(pointIndex.toString(), x, y - 5);
+        }
+
+        computeRegistration() {
+          if (
+            this.basePoints.length < 3 ||
+            this.inputPoints.length < 3 ||
+            this.basePoints.length !== this.inputPoints.length
+          ) {
+            alert("Please select at least 3 matching points!");
+            return;
+          }
+
+          console.log("Base Points:", this.basePoints);
+          console.log("Input Points:", this.inputPoints);
+
+          const matrix = this.computeAffineTransform(
+            this.inputPoints,
+            this.basePoints
+          );
+
+          if (!matrix || matrix.some((row) => row.some(isNaN))) {
+            alert("Transformation failed. Check control points.");
+            return;
+          }
+
+          this.applyTransformation(matrix);
+          this.createOverlay();
+          this.outputContainer.style.display = "flex";
+        }
+        // Transformation matrix calculation
+        computeAffineTransform(fromPoints, toPoints) {
+          const numPoints = fromPoints.length;
+
+          if (numPoints < 3) {
+            console.error(
+              "At least 3 control points are required for an affine transformation."
+            );
+            return null;
+          }
+
+          const A = [];
+          const b = [];
+
+          for (let i = 0; i < numPoints; i++) {
+            const [x, y] = fromPoints[i];
+            A.push([x, y, 1, 0, 0, 0]);
+            A.push([0, 0, 0, x, y, 1]);
+            b.push(toPoints[i][0]);
+            b.push(toPoints[i][1]);
+          }
+
+          console.log("Matrix A:", A);
+          console.log("Matrix b:", b);
+
+          if (A.some((row) => row.some(isNaN)) || b.some(isNaN)) {
+            console.error("Error: NaN found in transformation matrices.");
+            return null;
+          }
+
+          let solution;
+          try {
+            // Solve Ax = b using least squares solution for over-determined systems
+
+            solution = numeric.dot(
+              numeric.inv(numeric.dot(numeric.transpose(A), A)),
+              numeric.dot(numeric.transpose(A), b)
+            );
+
+            solution = solution.map((val) => parseFloat(val.toFixed(6))); // More precision
+          } catch (error) {
+            console.error("Matrix solving failed:", error);
+            return null;
+          }
+
+          if (!solution || solution.some(isNaN)) {
+            console.error("Invalid solution:", solution);
+            return null;
+          }
+          console.log("Base Points:", this.basePoints);
+          console.log("Input Points:", this.inputPoints);
+          console.log("Transformation Matrix (Before Rounding):", solution);
+
+          //   let scale = Math.sqrt(solution[0] ** 2 + solution[3] ** 2);
+          //   let rotation = Math.atan2(solution[3], solution[0]) * (180 / Math.PI);
+          let scale = parseFloat(
+            Math.sqrt(solution[0] ** 2 + solution[3] ** 2).toFixed(4)
+          );
+          let rotation = parseFloat(
+            (Math.atan2(solution[3], solution[0]) * (180 / Math.PI)).toFixed(4)
+          );
+
+          console.log("Scale Factor:", scale);
+          console.log("Rotation Angle (degrees):", rotation);
+
+          const matrix = [
+            [solution[0], solution[1], solution[2]],
+            [solution[3], solution[4], solution[5]],
+            [0, 0, 1],
+          ];
+
+          this.displayTransformationMatrix(matrix);
+          return matrix;
+        }
+
+        // control point selection algoritham
+        applyTransformation(matrix) {
+          this.registeredCanvas.width = this.baseCanvas.width;
+          this.registeredCanvas.height = this.baseCanvas.height;
+          this.registeredCtx.clearRect(
+            0,
+            0,
+            this.registeredCanvas.width,
+            this.registeredCanvas.height
+          );
+
+          this.registeredCtx.save();
+
+          // Apply precise affine transformation
+          this.registeredCtx.setTransform(
+            matrix[0][0],
+            matrix[1][0],
+            matrix[0][1],
+            matrix[1][1],
+            matrix[0][2],
+            matrix[1][2]
+          );
+
+          // Draw transformed input image
+          this.registeredCtx.drawImage(this.inputImage, 0, 0);
+
+          this.registeredCtx.restore();
+        }
+
+        displayTransformationMatrix(matrix) {
+          const matrixDisplay = document.getElementById("matrixDisplay");
+          matrixDisplay.innerHTML = `
+    <p>Transformation Matrix:</p>
+    <pre>
+      [${matrix[0][0]}, ${matrix[1][0]}, ${matrix[2][0]}]
+      [${matrix[0][1]}, ${matrix[1][1]}, ${matrix[2][1]}]
+      [${matrix[0][2]}, ${matrix[1][2]}, ${matrix[2][2]}]
+    </pre>`;
+        }
+
+     
+        createOverlay() {
+          this.overlayCanvas.width = this.baseCanvas.width;
+          this.overlayCanvas.height = this.baseCanvas.height;
+          this.overlayCtx.clearRect(
+            0,
+            0,
+            this.overlayCanvas.width,
+            this.overlayCanvas.height
+          );
+
+          // Draw base image
+          this.overlayCtx.globalAlpha = 1.0;
+          this.overlayCtx.drawImage(
+            this.baseImage,
+            0,
+            0,
+            this.overlayCanvas.width,
+            this.overlayCanvas.height
+          );
+
+          // Get opacity value
+          let opacity = parseFloat(
+            document.getElementById("opacitySlider").value
+          );
+
+          // Choose blending mode based on opacity
+          if (opacity < 1.0) {
+            this.overlayCtx.globalCompositeOperation = "multiply"; // Semi-transparent blending
+          } else {
+            this.overlayCtx.clearRect(
+              0,
+              0,
+              this.overlayCanvas.width,
+              this.overlayCanvas.height
+            ); // Remove base image
+            this.overlayCtx.globalCompositeOperation = "source-over"; // Full replacement
+          }
+
+          // Apply registered image with adjusted opacity
+          this.overlayCtx.globalAlpha = opacity;
+          this.overlayCtx.drawImage(
+            this.registeredCanvas,
+            0,
+            0,
+            this.overlayCanvas.width,
+            this.overlayCanvas.height
+          );
+
+          // Reset blending mode
+          this.overlayCtx.globalAlpha = 1.0;
+          this.overlayCtx.globalCompositeOperation = "source-over";
+        }
+      }
+      new ImageRegistration();
+
+      function exportImages() {
+        const downloadCanvasWithAppearance = (canvas, filename) => {
+          const tempCanvas = document.createElement("canvas");
+          const rect = canvas.getBoundingClientRect();
+          tempCanvas.width = rect.width;
+          tempCanvas.height = rect.height;
+          const tempCtx = tempCanvas.getContext("2d");
+
+          tempCtx.drawImage(
+            canvas,
+            0,
+            0,
+            canvas.width,
+            canvas.height,
+            0,
+            0,
+            tempCanvas.width,
+            tempCanvas.height
+          );
+
+          const dataURL = tempCanvas.toDataURL("image/png");
+          const link = document.createElement("a");
+          link.href = dataURL;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        };
+
+        const outputCanvas2 = document.getElementById("overlayCanvas");
+        downloadCanvasWithAppearance(outputCanvas2, "overLayImage.png");
+      }
+    </script>
+  </body>
+</html>

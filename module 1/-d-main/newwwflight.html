@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.125/Build/Cesium/Cesium.js"></script>
+    <script src="config.js"></script>
+    <link
+      href="https://cesium.com/downloads/cesiumjs/releases/1.125/Build/Cesium/Widgets/widgets.css"
+      rel="stylesheet"
+    />
+    <style>
+      .view-toggle {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        width: 96px;
+        height: 40px;
+        background-color: rgba(128, 128, 128, 0.4);
+        border: 1px solid black;
+        border-radius: 9999px;
+        cursor: pointer;
+        transition: all 0.3s ease-in-out;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      .view-toggle.active {
+        background-color: rgba(37, 99, 235, 0.8);
+      }
+
+      .view-toggle .slider {
+        position: absolute;
+        width: 32px; 
+        height: 32px; 
+        background-color: white;
+        border-radius: 50%;
+        top: 4px;
+        left: 4px;
+        transition: transform 0.3s ease-in-out;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .view-toggle.active .slider {
+        transform: translateX(56px);
+      }
+
+      .view-toggle .icon {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 20px;
+        transition: all 0.3s ease-in-out;
+      }
+
+      .view-toggle .plane-icon {
+        left: 50px;
+        color: rgba(245, 158, 11, 1);
+      }
+
+      .view-toggle .cockpit-icon {
+        right: 50px;
+        color: white;
+      }
+
+      .view-toggle.active .plane-icon {
+        opacity: 0;
+      }
+
+      .view-toggle:not(.active) .cockpit-icon {
+        opacity: 0;
+      }
+      .progress-container {
+        position: fixed;
+        /* right: 50px; */
+        padding-left: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 100;
+      }
+
+      .progress {
+        height: 150px;
+        width: 35px;
+        background-color: rgba(0, 0, 0, 0.3);
+        border: 2px solid white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        border-radius: 30px;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .progress-bar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        border-radius: 30px;
+        transition: height 0.1s linear, background 0.3s ease;
+      }
+
+      .speed-low {
+        background: linear-gradient(to top, #4287f5, #6ea6ff);
+      }
+
+      .speed-medium {
+        background: linear-gradient(to top, #f5d142, #ffeb85);
+      }
+
+      .speed-high {
+        background: linear-gradient(to top, #f54242, #ff6e6e);
+      }
+
+      @media (max-width: 768px) {
+    .progress-container {
+        left: 10px;
+        right: auto; 
+    }
+}
+
+      /* Crash Screen Styling */
+      #crash-screen {
+        display: none;
+        /* Initially hidden */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        text-align: center;
+        font-size: 24px;
+        padding-top: 20%;
+        z-index: 1000;
+      }
+
+      #crash-screen button {
+        font-size: 20px;
+        padding: 10px 20px;
+        margin-top: 20px;
+        cursor: pointer;
+      }
+
+      /* Hide joystick on desktop */
+      @media (min-width: 1000px) {
+        #joystick-container {
+          display: none;
+        }
+      }
+
+      /* Joystick container (only visible on mobile) */
+
+
+        @media (max-width: 1000px) {
+  /* .joy-maincontainer {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    display: flex;
+    flex-direction: row;
+    justify-content: end;
+  }
+
+  #joystick-container {
+    width: 120px;
+    height: 120px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+  } */
+
+  .joy-maincontainer {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: row;
+  justify-content: end;
+  z-index: 1000; /* Keep it above other elements */
+}
+
+#joystick-container {
+  width: 120px;
+  height: 120px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  visibility: visible; /* Ensure it's visible */
+  opacity: 1;
+}
+        /* Right Joystick Container */
+        /* #joystick-container2 {
+          position: absolute;
+          bottom: 50px;
+          right: 50px;
+          width: 120px;
+          height: 120px;
+          background: rgba(0, 0, 0, 0.3);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          touch-action: none;
+        } */
+
+        /* Right Joystick Knob */
+        #joystick2 {
+          width: 50px;
+          height: 50px;
+          background: red;
+          border-radius: 50%;
+          position: absolute;
+          transition: transform 0.1s linear;
+        }
+
+        /* Left Joystick Knob */
+        #joystick {
+          width: 50px;
+          height: 50px;
+          background: blue;
+          border-radius: 20%;
+          position: absolute;
+          transition: transform 0.1s linear;
+        }
+        button {
+          width: 60px;
+          height: 60px;
+          font-size: 18px;
+          background: #333;
+          color: white;
+          border: none;
+          border-radius: 5px;
+        }
+
+        button:active {
+          background: #555;
+        }
+
+        /* Adjust speed buttons */
+        #speed-controls {
+          position: fixed;
+          bottom: 20px;
+          right: 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        #speed-controls button {
+          width: 60px;
+          height: 60px;
+        }
+      }
+      @media (max-width: 768px) {
+  .joy-maincontainer {
+    bottom: 10px;
+    right: 10px;
+  }
+
+  #joystick-container {
+    width: 100px; /* Slightly smaller for mobile */
+    height: 100px;
+  }
+}
+    </style>
+  </head>
+
+  <body>
+    <div id="cesiumContainer"></div>
+
+    <button class="view-toggle" id="viewToggle">
+      <span class="slider"></span>
+      <i class="fas fa-plane icon plane-icon"></i>
+      <i class="fas fa-user icon cockpit-icon"></i><h5>View</h5>
+    </button>
+    <!-- speed -->
+    <div id="speed-display" style="
+    position: fixed;
+    top: 60px;
+    right: 20px;
+    padding: 10px 20px;
+    background: rgba(61, 64, 152, 0.7);
+    color: white;
+    font-size: 16px;
+    border-radius: 10px;
+    z-index: 1000;
+">Speed: 0 km/h</div>
+<!-- altitude -->
+<div id="altitude-display" style="
+position: fixed;
+top: 100px;
+right: 20px;
+padding: 10px 20px;
+background: rgba(61, 64, 152, 0.7);
+color: white;
+font-size: 16px;
+border-radius: 10px;
+z-index: 1000;
+">Altitude: 0 m</div>
+
+
+    <div class="progress-container">
+      <div class="progress">
+        <div
+          class="progress-bar speed-low"
+          role="progressbar"
+          aria-valuenow="85"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          style="height: 5%"
+        ></div>
+      </div><h6>Throttle</h6>
+    </div>
+    <div id="crash-screen">
+      <h1>Crash Detected!</h1>
+      <p>Your airplane has crashed into the terrain.</p>
+      <button onclick="restartSimulation()">Start Over</button>
+    </div>
+    <audio id="airplane-sound" src="airplane.mp3" loop></audio>
+    <audio id="crash-sound" src="crash.mp3"></audio>
+
+    <!-- Movement Controls (Left Side) -->
+     <div class="joy-maincontainer">
+      <div id="joystick-container">
+        <div id="joystick">Control</div>
+      </div>
+     </div>
+    </div>
+    <!-- <div id="joystick-container2">
+      <div id="joystick2">Speed</div>
+    </div> -->
+
+    <!-- Speed Controls on the right -->
+    <!-- <div id="speed-controls">
+      <button onclick="move('accelerate')">+</button>
+      <button onclick="move('decelerate')">-</button>
+    </div> -->
+    <script>
+      function progressBarFunction() {
+  const progressContainer = document.querySelector(".progress");
+  const progressBar = progressContainer.querySelector(".progress-bar");
+
+  function updateSpeedColor(percentage) {
+    progressBar.classList.remove(
+      "speed-low",
+      "speed-medium",
+      "speed-high"
+    );
+
+    if (percentage < 40) {
+      progressBar.classList.add("speed-low");
+    } else if (percentage < 70) {
+      progressBar.classList.add("speed-medium");
+    } else {
+      progressBar.classList.add("speed-high");
+    }
+  }
+
+  function updateProgressBar(event) {
+    const rect = progressContainer.getBoundingClientRect();
+    const containerHeight = rect.height;
+    
+    // Get Y position from either mouse or touch event
+    const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+    const relativeY = clientY - rect.top;
+
+    // Calculate percentage (inverted since 100% should be at the top)
+    let percentage = 100 - (relativeY / containerHeight) * 100;
+    percentage = Math.max(0, Math.min(100, percentage));
+
+    // Update progress bar height
+    progressBar.style.height = `${percentage}%`;
+
+    // Update color based on speed
+    updateSpeedColor(percentage);
+
+    // Convert percentage to speed (0-1000 km/h)
+    const maxSpeedKmh = 1000;
+    const speedKmh = (percentage / 100) * maxSpeedKmh;
+    
+    // Convert km/h to our internal speed units
+    const maxInternalSpeed = 0.003;
+    speed = (percentage / 100) * maxInternalSpeed;
+    
+    // Store current visual speed for display
+    currentVisualSpeed = speedKmh;
+
+    // Start the plane immediately on any interaction with the progress bar
+    if (!start) {
+      start = true;
+      startAirplaneSound();
+    }
+  }
+
+  // Handle mouse movement (hover) over the progress bar
+  progressContainer.addEventListener("mousemove", (event) => {
+    updateProgressBar(event);
+  });
+
+  // Handle touch movement on the progress bar (for mobile)
+  progressContainer.addEventListener("touchstart", (event) => {
+    event.preventDefault();
+    updateProgressBar(event);
+  });
+
+  progressContainer.addEventListener("touchmove", (event) => {
+    event.preventDefault();
+    updateProgressBar(event);
+  });
+
+  // Handle mouse entering the progress bar
+  progressContainer.addEventListener("mouseenter", (event) => {
+    updateProgressBar(event);
+  });
+
+  // Initialize with a low speed
+  updateSpeedColor(5);
+  progressBar.style.height = "5%";
+}
+
+      
+      window.addEventListener("load", progressBarFunction);
+
+ 
+      let isInCockpitView = false;
+
+      function toggleView() {
+        const button = document.getElementById("viewToggle");
+        isInCockpitView = !isInCockpitView;
+
+        if (isInCockpitView) {
+          button.classList.add("active");
+          const assetId = params.cockpit_plane_asset_id;
+          addAirplaneModel(assetId);
+        } else {
+          button.classList.remove("active");
+          const assetId = params.plane_asset_id;
+          addAirplaneModel(assetId);
+        }
+      }
+
+      document
+        .getElementById("viewToggle")
+        .addEventListener("click", toggleView);
+
+      // Cesium Ion token
+      Cesium.Ion.defaultAccessToken = params.access_token;
+
+      // Keep your `Cesium.Ion.defaultAccessToken = 'your_token_here'` line from before here.
+      const viewer = new Cesium.Viewer("cesiumContainer", {
+        terrain: Cesium.Terrain.fromWorldTerrain(),
+      });
+      
+
+      // speed
+
+      let lastPosition = null;
+let lastUpdateTime = null;
+let speedHistory = [];
+const maxHistorySize = 10; // Number of frames to average
+
+
+ 
+let currentVisualSpeed = 0;
+
+function updateSpeedDisplay() {
+  document.getElementById("speed-display").innerText = `Speed: ${Math.round(currentVisualSpeed)} km/h`;
+}
+function updateAltitudeDisplay(altitude) {
+    document.getElementById("altitude-display").innerText = `Altitude: ${altitude.toFixed(2)} m`;
+}
+
+function calculateAltitude(currentPosition) {
+    const cartographic = Cesium.Cartographic.fromDegrees(
+        currentPosition.longitude,
+        currentPosition.latitude,
+        currentPosition.height
+    );
+
+    return cartographic.height; // Altitude in meters
+}
+viewer.clock.onTick.addEventListener(() => {
+  if (start) {
+    // Update displays
+    updateSpeedDisplay();
+    updateAltitudeDisplay(currentPosition.height);
+  }
+});
+      let start = false;
+
+      let sampleloader = async () => {
+        const osmBuildings = await Cesium.createOsmBuildingsAsync();
+        viewer.scene.primitives.add(osmBuildings);
+      };
+      sampleloader();
+
+      function showCrashScreen() {
+        document.getElementById("crash-screen").style.display = "block"; // Show overlay
+        document.getElementById("crash-sound").play(); // Play crash sound
+      }
+
+      function restartSimulation() {
+        location.reload(); // Reload the page
+      }
+      let airplaneSound = document.getElementById("airplane-sound");
+
+      function startAirplaneSound() {
+        if (airplaneSound.paused) {
+          airplaneSound
+            .play()
+            .catch((error) => console.error("Error playing sound:", error));
+        }
+      }
+
+      function stopAirplaneSound() {
+        airplaneSound.pause();
+        airplaneSound.currentTime = 0; // Reset playback position
+      }
+
+      // Initial flight position
+      // let currentPosition = {
+      //     latitude: 27.986065,
+      //     longitude: 86.922623,
+      //     height: 9000
+      // };
+      let currentPosition = flightData[0];
+      // Create a SampledPositionProperty for updating flight path
+      const positionProperty = new Cesium.SampledPositionProperty();
+
+      function updatePosition() {
+        const position = Cesium.Cartesian3.fromDegrees(
+          currentPosition.longitude,
+          currentPosition.latitude,
+          currentPosition.height
+        );
+        const time = viewer.clock.currentTime; // Use Cesium's clock for timestamps
+        positionProperty.addSample(time, position);
+      }
+
+      // Update position initially
+      updatePosition();
+
+      let modal_orientation = {
+        heading: -90,
+        roll: 0,
+        pitch: 0,
+      };
+      let airplaneEntity;
+
+      // Add the airplane model
+      async function addAirplaneModel(asset_id) {
+        viewer.entities.removeAll();
+        const airplaneUri = await Cesium.IonResource.fromAssetId(asset_id);
+        const position = Cesium.Cartesian3.fromDegrees(
+          currentPosition.longitude,
+          currentPosition.latitude,
+          currentPosition.height
+        );
+        const heading = Cesium.Math.toRadians(modal_orientation.heading);
+        const pitch = modal_orientation.pitch;
+        const roll = modal_orientation.roll;
+        const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
+        const orientation = Cesium.Transforms.headingPitchRollQuaternion(
+          position,
+          hpr
+        );
+        let modal_scale = 1;
+
+        if (params.plane_asset_id == asset_id) {
+          viewer.scene.screenSpaceCameraController.maximumZoomDistance =
+            Number.POSITIVE_INFINITY;
+          viewer.scene.screenSpaceCameraController.maximumTiltAngle = undefined;
+         
+        } else if (params.cockpit_plane_asset_id == asset_id) {
+          viewer.scene.screenSpaceCameraController.maximumZoomDistance = 31;
+          viewer.scene.screenSpaceCameraController.maximumTiltAngle =
+            Math.PI * 700;
+          modal_scale = 10;
+          
+        }
+
+        airplaneEntity = viewer.entities.add({
+          position: positionProperty,
+          orientation: orientation,
+          model: {
+            uri: airplaneUri,
+            scale: modal_scale,
+          },
+        });
+
+        viewer.trackedEntity = airplaneEntity;
+        viewer.scene.postRender.addEventListener(checkCollision);
+      }
+      addAirplaneModel(params.plane_asset_id);
+
+      function checkCollision() {
+        const cartesian = airplaneEntity.position.getValue(
+          viewer.clock.currentTime
+        );
+        if (!cartesian) return;
+
+        const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+        const terrainHeight = viewer.scene.globe.getHeight(cartographic);
+
+        if (
+          terrainHeight !== undefined &&
+          cartographic.height <= terrainHeight
+        ) {
+          // console.error("Crash detected! Object hit the terrain.");
+          // alert('crashed')
+          stopAirplaneSound();
+          start = false;
+          showCrashScreen();
+          // alert("Crash detected!"); // Replace with necessary handling
+        }
+      }
+
+      // Function to update the roll of the airplane entity
+      function updateRoll(
+        airplaneEntity,
+        newheading = modal_orientation.heading,
+        newpitch = modal_orientation.pitch,
+        newroll = modal_orientation.roll
+      ) {
+        const position = Cesium.Cartesian3.fromDegrees(
+          currentPosition.longitude,
+          currentPosition.latitude,
+          currentPosition.height
+        );
+        modal_orientation = {
+          heading: newheading,
+          pitch: newpitch,
+          roll: newroll,
+        };
+        const orientation = Cesium.Transforms.headingPitchRollQuaternion(
+          position,
+          new Cesium.HeadingPitchRoll(
+            Cesium.Math.toRadians(newheading),
+            Cesium.Math.toRadians(newpitch),
+            Cesium.Math.toRadians(newroll)
+          )
+        );
+
+        // Update the orientation
+        airplaneEntity.orientation = orientation;
+      }
+
+      let keysPressed = {};
+      let speed_control = 0.00001; // Example speed control increment
+      let speed = 0.000001; // Initial speed
+
+      // event listeners for keydown and keyup
+      window.addEventListener("keydown", (event) => {
+        keysPressed[event.key] = true; // Track key press
+        handleKeyActions(); // Perform actions based on pressed keys
+      });
+
+      window.addEventListener("keyup", (event) => {
+        delete keysPressed[event.key]; // Remove key when released
+      });
+      let reset = false;
+      //mobile button actions
+      function move(direction) {
+        switch (direction) {
+          case "up":
+            keysPressed["s"] = true;
+            break;
+          case "down":
+            keysPressed["w"] = true;
+            break;
+          case "left":
+            keysPressed["a"] = true;
+            break;
+          case "right":
+            keysPressed["d"] = true;
+            break;
+          case "accelerate":
+            keysPressed["ArrowUp"] = true;
+            break;
+          case "decelerate":
+            keysPressed["ArrowDown"] = true;
+            break;
+          case "reset":
+            keysPressed["r"] = true;
+            break;
+        }
+        handleKeyActions();
+        keysPressed = {};
+      }
+      function joystick_control(control, container) {
+        const joystick = document.getElementById(control);
+        const joystickContainer = document.getElementById(container);
+
+        let centerX = joystickContainer.offsetWidth / 2;
+        let centerY = joystickContainer.offsetHeight / 2;
+
+        let moving = false;
+
+        joystick.addEventListener("mousedown", startJoystick);
+        joystick.addEventListener("touchstart", startJoystick);
+
+        document.addEventListener("mousemove", moveJoystick);
+        document.addEventListener("touchmove", moveJoystick);
+
+        document.addEventListener("mouseup", stopJoystick);
+        document.addEventListener("touchend", stopJoystick);
+
+        function startJoystick(event) {
+          moving = true;
+        }
+
+        function moveJoystick(event) {
+          if (!moving) return;
+
+          let clientX, clientY;
+          if (event.touches) {
+            clientX = event.touches[0].clientX;
+            clientY = event.touches[0].clientY;
+          } else {
+            clientX = event.clientX;
+            clientY = event.clientY;
+          }
+
+          // Calculate movement relative to the joystick container
+          const rect = joystickContainer.getBoundingClientRect();
+          let offsetX = clientX - rect.left - centerX;
+          let offsetY = clientY - rect.top - centerY;
+
+          const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+          const maxDistance = 40; // Limit joystick movement range
+
+          if (distance > maxDistance) {
+            offsetX = (offsetX / distance) * maxDistance;
+            offsetY = (offsetY / distance) * maxDistance;
+          }
+
+          joystick.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+
+          // Detect direction
+          if (control == "joystick2") {
+            if (offsetY < -20) move("accelerate");
+            if (offsetY > 20) move("declerate");
+          } else {
+            if (offsetY < -20) move("up");
+            if (offsetY > 20) move("down");
+          }
+          if (control == "joystick") {
+            if (offsetX < -20) move("left");
+            if (offsetX > 20) move("right");
+          }
+          // if (offsetX < -20) move("left");
+          // if (offsetX > 20) move("right");
+        }
+
+        function stopJoystick() {
+          moving = false;
+          joystick.style.transform = "translate(0px, 0px)"; // Reset joystick position
+          move("reset");
+        }
+      }
+      joystick_control("joystick", "joystick-container");
+      // joystick_control("joystick2", "joystick-container2");
+      // Function to handle key actions
+      function handleKeyActions() {
+        // Example controls
+        if (keysPressed["ArrowUp"]) {
+          if (modal_orientation.pitch - 0.5 > -40) {
+            updateRoll(
+              airplaneEntity,
+              modal_orientation.heading,
+              modal_orientation.pitch - 0.5
+            );
+          }
+        }
+        if (keysPressed["ArrowDown"]) {
+          // Move up
+          if (modal_orientation.pitch + 0.5 < 40) {
+            updateRoll(
+              airplaneEntity,
+              modal_orientation.heading,
+              modal_orientation.pitch + 0.5
+            );
+          }
+        }
+        if (keysPressed["ArrowLeft"]) {
+          // Move left
+          if (modal_orientation.roll - 0.4 > -50) {
+            updateRoll(
+              airplaneEntity,
+              modal_orientation.heading - 0.05,
+              modal_orientation.pitch,
+              modal_orientation.roll - 0.4
+            );
+          }
+        }
+        if (keysPressed["ArrowRight"]) {
+          // Move right
+          if (modal_orientation.roll + 0.4 < 50) {
+            updateRoll(
+              airplaneEntity,
+              modal_orientation.heading + 0.05,
+              modal_orientation.pitch,
+              modal_orientation.roll + 0.4
+            );
+          }
+        }
+        if (keysPressed["r"]) {
+          reset = true;
+          setTimeout(() => {
+            reset = false;
+            modal_orientation = {
+              heading: -90,
+              roll: 0,
+              pitch: 0,
+            };
+          }, 1500);
+        }
+        if (keysPressed["b"]) {
+          addAirplaneModel(params.plane_asset_id);
+        }
+        // if (keysPressed['c']) {
+        //     addAirplaneModel(params.cockpit_plane_asset_id)
+        // }
+        if (keysPressed["a"]) {
+          //tostart
+          start = true;
+          // Accelerate
+          if (speed + speed_control < 0.001) {
+            speed += speed_control;
+          }
+        }
+        if (keysPressed["d"]) {
+          // Decelerate
+          if (speed - speed_control > 0) {
+            speed -= speed_control;
+          }
+        }
+
+        // Update position after handling input
+        updatePosition();
+      }
+      let flight_index = 0;
+      function decrementHeadingWithDelay() {
+        if (modal_orientation.heading > -90) {
+          modal_orientation.heading -= 10;
+
+          // Deep copy to trigger reactivity if needed
+          modal_orientation = JSON.parse(JSON.stringify(modal_orientation));
+
+          // Update position
+          updatePosition();
+
+          // Call this function again after a delay of 500ms (adjust as needed)
+          setTimeout(decrementHeadingWithDelay, 500);
+        }
+      }
+      let force_fix_heading = true;
+      // Animation loop: Continuous motion
+      viewer.clock.onTick.addEventListener(() => {
+        const autoMoveSpeed = speed; // Adjust as needed for auto-move
+        currentPosition.latitude += autoMoveSpeed; // Auto increment longitude
+        if (start) {
+          startAirplaneSound();
+          if (reset) {
+            if (modal_orientation.heading < -90 || modal_orientation.roll < 0) {
+              updateRoll(
+                airplaneEntity,
+                modal_orientation.heading + 0.05,
+                modal_orientation.pitch,
+                modal_orientation.roll + 0.4
+              );
+            } else if (
+              modal_orientation.heading > -90 ||
+              modal_orientation.roll > 0
+            ) {
+              updateRoll(
+                airplaneEntity,
+                modal_orientation.heading - 0.05,
+                modal_orientation.pitch,
+                modal_orientation.roll - 0.4
+              );
+            }
+            if (modal_orientation.pitch < 0) {
+              updateRoll(
+                airplaneEntity,
+                modal_orientation.heading,
+                modal_orientation.pitch + 0.5
+              );
+            } else if (modal_orientation.pitch > 0) {
+              updateRoll(
+                airplaneEntity,
+                modal_orientation.heading,
+                modal_orientation.pitch - 0.5
+              );
+            }
+            if (
+              (modal_orientation.pitch == 0,
+              modal_orientation.heading == -90,
+              modal_orientation.roll == 0)
+            ) {
+              reset = false;
+            }
+          } else {
+            if (modal_orientation.heading < -90 || modal_orientation.roll < 0) {
+              currentPosition.longitude -=
+                autoMoveSpeed *
+                (-0.5 *
+                  modal_orientation.roll *
+                  (0.00001 * currentPosition.height));
+            } else if (
+              modal_orientation.heading > -90 ||
+              modal_orientation.roll > 0
+            ) {
+              currentPosition.longitude +=
+                autoMoveSpeed *
+                (0.5 *
+                  modal_orientation.roll *
+                  (0.00001 * currentPosition.height));
+            }
+      
+//             if (modal_orientation.pitch < 0) {
+//     currentPosition.height -= (1 - Math.abs(modal_orientation.pitch)) * speed; // Descend
+// } else if (modal_orientation.pitch > 0) {
+//     currentPosition.height += (1 + Math.abs(modal_orientation.pitch)) * speed; // Climb
+// }
+const maxClimbRate = 100; // Increased climb rate
+const maxDescentRate = 80; // Increased descent rate
+const maxPitch = 30; // Maximum pitch angle in degrees
+const smoothFactor = 0.5; // Increased for more noticeable changes
+
+// Normalize pitch factor (between 0 and 1)
+let pitchFactor = Math.abs(modal_orientation.pitch) / maxPitch;
+
+// Compute altitude change based on pitch and speed
+let altitudeChange = (modal_orientation.pitch > 0 ? maxClimbRate : -maxDescentRate) * pitchFactor * speed * 10;
+
+// Apply altitude change smoothly
+currentPosition.height += altitudeChange;
+
+// Get terrain height properly
+const cartographic = Cesium.Cartographic.fromDegrees(
+    currentPosition.longitude,
+    currentPosition.latitude
+);
+
+// Use the most accurate terrain data to avoid being stuck
+Cesium.sampleTerrainMostDetailed(viewer.terrainProvider, [cartographic])
+    .then(function (updatedPositions) {
+        const terrainHeight = updatedPositions[0].height || 0;
+        console.log("Updated Terrain Height:", terrainHeight, "Current Altitude:", currentPosition.height);
+
+        // Prevent altitude from being stuck at terrain level
+        if (currentPosition.height < terrainHeight + 10) {
+            currentPosition.height = terrainHeight + 10; // Keep 10m above ground instead of 5m
+        }
+
+        // Update altitude display
+        updateAltitudeDisplay(currentPosition.height);
+    });
+
+// Update altitude display
+updateAltitudeDisplay(currentPosition.height);
+          }
+          let flightData_length = 180;
+          if (flight_index < flightData_length) {
+            currentPosition = flightData[flight_index]; // Auto increment longitude
+            currentPosition.height = currentPosition.height + 2;
+            modal_orientation.heading = 210;
+            flight_index++;
+          } else if (flight_index == flightData_length) {
+            speed = 0.0001;
+            speed_control = 0.0001;
+            //     currentPosition = {
+            //         latitude: 27.986065,
+            // longitude: 86.922623,
+            // height: 9000
+            //      };
+            // modal_orientation.heading=-
+
+            reset = true;
+            flight_index++;
+            //  if(modal_orientation.heading >-90){
+            // modal_orientation.heading -=10
+            // console.log(modal_orientation.heading)
+            // modal_orientation=JSON.parse(JSON.stringify(modal_orientation))
+            // updatePosition();
+            // decrementHeadingWithDelay();
+          } else {
+            if (force_fix_heading && modal_orientation.heading <= 265) {
+              modal_orientation.heading += 5;
+              move("reset");
+            } else {
+              force_fix_heading = false;
+            }
+            // reset=true
+          }
+            
+
+          updatePosition();
+        } else {
+          currentPosition = flightData[0];
+          modal_orientation.heading = 210;
+          // updatePosition();
+        }
+        // console.log(currentPosition)
+        // updatePosition();
+      });
+    </script>
+  </body>
+</html>

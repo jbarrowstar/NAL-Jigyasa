@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Flight Simulator - Instructions</title>
+    <style>
+        /* General Body Styling */
+        body {
+            font-family: 'Poppins', Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            background: linear-gradient(to right, #87CEEB, #6A5ACD);
+            color: #fff;
+        }
+
+        /* Main Container */
+        .container {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            color: #333;
+        }
+
+        /* Heading */
+        h1 {
+            font-size: 26px;
+            color: #444;
+            margin-bottom: 15px;
+        }
+
+        /* Paragraph */
+        p {
+            font-size: 16px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        /* Instruction List */
+        .instruction-list {
+            text-align: left;
+            margin: 20px 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .instruction-list li {
+            background: #f4f4f4;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            font-size: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .instruction-list li::before {
+            content: "✔";
+            color: #4CAF50;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+
+        /* Controls List */
+        .controls-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 20px;
+            color: #222;
+        }
+
+        .controls-list {
+            text-align: left;
+            margin: 15px 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .controls-list li {
+            background: #e8f5e9;
+            padding: 12px;
+            margin: 6px 0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls-list li::before {
+            content: "✈";
+            color: #1976D2;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+
+        /* Start Button */
+        .start-button {
+            padding: 14px 22px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: 0.3s ease-in-out;
+        }
+
+        .start-button:hover {
+            background-color: #388E3C;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>3D Flight Simulator - Instructions</h1>
+        <p>Follow these instructions to get started:</p>
+        
+        
+
+        <p class="controls-title">Flight Controls:</p>
+        <ul class="controls-list">
+            <li>A: Increase Speed</li>
+            <li>D: Decrease Speed</li>
+            <li>⬆ Arrow Up: Land</li>
+            <li>⬇ Arrow Down: Take-off</li>
+            <li>⬅ Arrow Left: Move Left</li>
+            <li>➡ Arrow Right: Move Right</li>
+            <li>R: Reset</li>
+            <li>C: Pilot View</li>
+            <li>B: Bird View</li>
+        </ul>
+
+        <button class="start-button" onclick="startApplication()">Start</button>
+    </div>
+
+    <script>
+        function startApplication() {
+            window.location.href = "index.html"; // Redirect to index.html
+        }
+    </script>
+</body>
+</html>
